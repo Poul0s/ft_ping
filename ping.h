@@ -6,7 +6,7 @@
 /*   By: psalame <psalame@student.42angouleme.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/08/01 15:09:51 by psalame           #+#    #+#             */
-/*   Updated: 2024/08/01 17:56:37 by psalame          ###   ########.fr       */
+/*   Updated: 2024/08/04 13:27:18 by psalame          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,6 +24,6 @@ enum flags {
 	UNKNOWN_FLAG	=	1 << 2
 };
 
-int	get_flags(char ***arguments);
+int	get_flags(int ac, char **av);
 
 #endif
