@@ -6,7 +6,7 @@
 /*   By: psalame <psalame@student.42angouleme.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/08/01 15:10:14 by psalame           #+#    #+#             */
-/*   Updated: 2024/08/01 18:06:37 by psalame          ###   ########.fr       */
+/*   Updated: 2025/11/05 14:59:57 by psalame          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,9 +14,8 @@
 
 int	main(int ac, char **arguments)
 {
-	arguments++;
-	int		flags = get_flags(&arguments);
-	printf("flags: %d\ncurrent argument: %s\n", flags, *arguments);
+	int		flags = get_flags(ac, arguments);
+	printf("flags: %d\ncurrent argument (%d): %s\n", flags, optind, arguments[optind]);
 
 	return (0);
 }

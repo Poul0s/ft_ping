@@ -6,7 +6,7 @@
 /*   By: psalame <psalame@student.42angouleme.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/08/04 14:28:00 by psalame           #+#    #+#             */
-/*   Updated: 2024/08/04 20:12:11 by psalame          ###   ########.fr       */
+/*   Updated: 2025/11/05 15:02:22 by psalame          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,6 +15,8 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdint.h>
+
+int optind = 1;
 
 static const t_option * find_opt_long(char * opt, const struct s_option * lopts)
 {
@@ -60,6 +62,7 @@ t_optres	ft_getopt_long(int ac, char ** av, const char * opts, const struct s_op
 
 	if (i < ac && is_arg_option(av[i]))
 	{
+		optind = i + 1;
 		if (j == 1 && av[i][1] == '-' && lopts != NULL)
 		{
 			const t_option * opt = find_opt_long(av[i] + 2, lopts);
@@ -68,22 +71,28 @@ t_optres	ft_getopt_long(int ac, char ** av, const char * opts, const struct s_op
 			if (opt == NULL)
 			{
 				print_err(av[0], 1, (intptr_t) av[i - 1]);
-				return (t_optres){0, NULL, i};
+				return (t_optres){0, NULL};
 			}
 			else if (opt->has_arg && av[i] == NULL)
 			{
+				fprintf(stderr, "WARNING: has_arg functionnality not finish. It may and it will produce unexpected result if used.\n"); // see todo in sort_arg_options.c
 				print_err(av[0], 3, (intptr_t) av[i - 1]);
-				return (t_optres){0, NULL, i}; // maybe include the opt->val in struct for future usage
+				return (t_optres){0, NULL}; // maybe include the opt->val in struct for future usage
 			}
-			else
-				return (t_optres){opt->val, opt->has_arg ? av[i++] : NULL, i};
+			else {
+				if (opt->has_arg) {
+					fprintf(stderr, "WARNING: has_arg functionnality not finish. It may and it will produce unexpected result if used.\n"); // see todo in sort_arg_options.c
+					optind = i + 1;
+				}
+				return (t_optres){opt->val, opt->has_arg ? av[i++] : NULL};
+			}
 		}
 		else
 		{
 			char c = av[i][j++];
 			if (!av[i][j])
 			{
-				i++;
+				i = optind;
 				j = 1;
 			}
 
@@ -91,34 +100,28 @@ t_optres	ft_getopt_long(int ac, char ** av, const char * opts, const struct s_op
 			if (!opt)
 			{
 				print_err(av[0], 0, c);
-				return (t_optres){0, NULL, i}; // maybe include the c in struct for future usage
+				return (t_optres){0, NULL}; // maybe include the c in struct for future usage
 			}
-			else if (*(opt + 1) == ':' && i >= ac)
+			else if (*(opt + 1) == ':' && optind >= ac)
 			{
+				fprintf(stderr, "WARNING: has_arg functionnality not finish. It may and it will produce unexpected result if used.\n"); // see todo in sort_arg_options.c
 				print_err(av[0], 2, c);
-				return (t_optres){0, NULL, i}; // maybe include the c in struct for future usage
+				return (t_optres){0, NULL}; // maybe include the c in struct for future usage
 			}
 			else
 			{
 				char	*arg;
-				if (*(opt + 1) == ':')
-				{
-					if (j == 1)
-						arg = av[i];
-					else
-					{
-						arg = av[i] + j;
-						j = 1;
-					}
-					i++;
+				if (*(opt + 1) == ':') {
+					fprintf(stderr, "WARNING: has_arg functionnality not finish. It may and it will produce unexpected result if used.\n"); // see todo in sort_arg_options.c
+					arg = av[optind++];
 				}
 				else
 					arg = NULL;
-				return (t_optres){c, arg, i};
+				return (t_optres){c, arg};
 			}
 		}
 	}
 	else
-		return (t_optres){-1, NULL, i};
+		return (t_optres){-1, NULL};
 }
 

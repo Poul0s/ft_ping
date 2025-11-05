@@ -29,31 +29,6 @@ static void	move_argument_at_pos(char ** av, int src_i, int dest_i)
 	av[src_i] = argument;
 }
 
-// bool	is_arg_options_sorted(int ac, char ** av)
-// {
-// 	int	i = 1;
-// 	while (i < ac && is_arg_option(av[i]))
-// 		i++;
-// 	while (++i < ac)
-// 		if (is_arg_option(av[i]))
-// 			return false;
-// 	return true;
-// }
-
-// void	sort_arg_options(int ac, char ** av)
-// {
-// 	int	i = 1;
-// 	while (i < ac && is_arg_option(av[i]))
-// 		i++;
-// 	int	last_option_position = i++;
-// 	while (i < ac)
-// 	{
-// 		if (is_arg_option(av[i]))
-// 			move_argument_at_pos(av, i, last_option_position++);
-// 		i++;
-// 	}
-// }
-
 void	sort_next_argument(int ac, char ** av, int i)
 {
 	if (!is_arg_option(av[i]))
@@ -63,6 +38,7 @@ void	sort_next_argument(int ac, char ** av, int i)
 		{
 			if (is_arg_option(av[j]))
 				move_argument_at_pos(av, j, i);
+			/// TODO HAVE TO MOVE ARGUMENT VALUE IF OPT has_arg
 			j++;
 		}
 	}

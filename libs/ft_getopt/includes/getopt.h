@@ -13,6 +13,8 @@
 #ifndef FT_GETOPT_H
 # define FT_GETOPT_H 1
 
+extern int optind;
+
 typedef struct s_option
 {
 	char	*name;
@@ -24,7 +26,6 @@ typedef struct s_optres
 {
 	int		val;
 	char	*arg;
-	int		next_argument;
 }	t_optres;
 
 t_optres	ft_getopt(int argc, char ** argv, const char * options);
