@@ -6,21 +6,20 @@
 /*   By: psalame <psalame@student.42angouleme.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/08/01 15:10:14 by psalame           #+#    #+#             */
-/*   Updated: 2025/11/05 20:18:50 by psalame          ###   ########.fr       */
+/*   Updated: 2025/11/06 00:06:49 by psalame          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "ping.h"
-#include <sysexits.h>
 #include <arpa/inet.h>
 #include <string.h>
 #include <unistd.h>
 #include <netinet/ip_icmp.h>
 #include <time.h>
 #include <linux/time.h>
-#include <stdlib.h>
 #include <poll.h>
 #include <netdb.h>
+#include <signal.h>
 
 u_int16_t packet_sent = 0;
 u_int16_t packet_received = 0;
@@ -89,7 +88,7 @@ struct timespec send_packet(u_int16_t sequence, struct target_host *host) {
 	return ts;
 }
 
-int receive_packet(struct target_host *host) {
+int receive_packet(struct target_host *host, int flags, struct ping_opts *opts) {
 	const pid_t pid = getpid();
 	char recv_buffer[1024];
 	struct sockaddr_in recv_addr;
@@ -111,39 +110,72 @@ int receive_packet(struct target_host *host) {
 	size_t ip_header_len = ip_header->ihl * 4;
 	struct icmphdr *recv_icmp = (struct icmphdr *)(recv_buffer + ip_header_len);
 
+	if (recv_icmp->type == 11) {
+		printf("%zd bytes from %s: Time to live exceeded\n",
+			bytes_received - ip_header_len,
+			inet_ntoa(recv_addr.sin_addr)
+		);
+		return 0;
+	}
+
 	if (recv_icmp->un.echo.id != htons(pid) || recv_icmp->type != 0) {
 		// not for us, ignore
 		return 0;
 	}
-	
 	packet_received++;
+
+	printf("%zd bytes from %s: icmp_seq=%d ttl=%d",
+		bytes_received - ip_header_len,
+		inet_ntoa(recv_addr.sin_addr),
+		ntohs(recv_icmp->un.echo.sequence),
+		(flags & FLAG_TTL) ? opts->ttl - (64 - ip_header->ttl) : ip_header->ttl // todo better calculation of ttl
+	);
 	
 	char *recv_payload = recv_buffer + ip_header_len + sizeof(struct icmphdr);
 	recv_payload[bytes_received - ip_header_len - sizeof(struct icmphdr)] = '\0';
 	char *separator = strchr(recv_payload, '.');
 	if (!separator) {
-		// later: just display without time
-		fprintf(stderr, "Invalid payload format\n");
-		return 1;
+		printf("\n");
+	} else {
+		*separator = '\0';
+		long sec_sent = atol(recv_payload);
+		long nsec_sent = atol(separator + 1);
+		float elapsed_ms = (ts_recv.tv_sec - sec_sent) * 1000 + ((float)ts_recv.tv_nsec - nsec_sent) / 1000000;
+		
+		printf(" time=%.3f ms\n", elapsed_ms);
 	}
-	*separator = '\0';
-	long sec_sent = atol(recv_payload);
-	long nsec_sent = atol(separator + 1);
-	float elapsed_ms = (ts_recv.tv_sec - sec_sent) * 1000 + ((float)ts_recv.tv_nsec - nsec_sent) / 1000000;
 	
-	printf("%zd bytes from %s: icmp_seq=%d ttl=%d time=%.3f ms\n",
-		bytes_received - ip_header_len, // must be sizeof(icmp) + sizeof(payload) : good
-		inet_ntoa(recv_addr.sin_addr),
-		ntohs(recv_icmp->un.echo.sequence), // must be 1 : good
-		ip_header->ttl,
-		elapsed_ms
-	);
 
 	return 0;
 }
 
+void print_stats(void) {
+	printf("--- Ping statistics ---\n");
+	printf("%d packets transmitted, %d packets received, %d%% packet loss\n",
+		packet_sent,
+		packet_received,
+		(int)(((float)(packet_sent - packet_received) / packet_sent) * 100)
+	);
+	// todo min/avg/max/stddev
+}
+
+void signal_handler(int signum) {
+	if (signum == SIGINT) {
+		print_stats();
+		exit(0);
+	}
+}
+
+void	setup_signal_handlers(void) {
+	struct sigaction sa;
+	sa.sa_handler = signal_handler;
+	sigemptyset(&sa.sa_mask);
+	sigaction(SIGINT, &sa, NULL);
+}
+
 int	main(int ac, char **arguments) {
-	int		flags = get_flags(ac, arguments);
+	struct ping_opts options = {0};
+	int		flags = get_flags(ac, arguments, &options);
 
 	if (flags & FLAG_HELP) {
 		show_help(arguments[0]);
@@ -158,12 +190,12 @@ int	main(int ac, char **arguments) {
 	// Génération de la socket brute ICMP
 	struct target_host host;
 	host.host = arguments[optind];
-	// (todo) require root to make raw socket. Does subject allow this?
 	host.socket = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
 	if (host.socket < 0) {
 		perror("socket");
 		return 1;
 	}
+	setsockopt(host.socket, IPPROTO_IP, IP_TTL, &options.ttl, sizeof(options.ttl));
 
 	// todo getaddrinfo pour résoudre le nom de domaine en IP
 	struct addrinfo hints = {0};
@@ -173,7 +205,7 @@ int	main(int ac, char **arguments) {
 	hints.ai_protocol = IPPROTO_ICMP;
 	int gai = getaddrinfo(host.host, NULL, &hints, &res);
 	if (gai != 0) {
-		fprintf(stderr, "%s: unknown host1\n", arguments[0]);
+		fprintf(stderr, "%s: unknown host\n", arguments[0]);
 		return 1;
 	}
 	
@@ -196,6 +228,8 @@ int	main(int ac, char **arguments) {
 	printf("PING %s (%s): %d data bytes\n", host.host,
 		inet_ntoa(host.addr.sin_addr), PAYLOAD_SIZE);
 
+	setup_signal_handlers();
+
 	while (true) {
 		clock_gettime(CLOCK_MONOTONIC, &ts_now);
 		elapsed_ms = (ts_now.tv_sec - ts_last_sent.tv_sec) * 1000 + (ts_now.tv_nsec - ts_last_sent.tv_nsec) / 1000000;
@@ -206,7 +240,7 @@ int	main(int ac, char **arguments) {
 
 		if (poll(pfds, 1, INTERVAL_DEFAULT - elapsed_ms) > 0) {
 			// recept packet
-			int ret = receive_packet(&host);
+			int ret = receive_packet(&host, flags, &options);
 			if (ret)
 				return ret;
 		}

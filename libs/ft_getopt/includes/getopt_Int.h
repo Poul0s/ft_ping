@@ -6,7 +6,7 @@
 /*   By: psalame <psalame@student.42angouleme.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/08/04 14:35:28 by psalame           #+#    #+#             */
-/*   Updated: 2024/08/04 19:37:22 by psalame          ###   ########.fr       */
+/*   Updated: 2025/11/05 21:35:04 by psalame          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,6 +16,7 @@
 # define NULL (void *) 0
 
 bool	is_arg_option(char * arg);
-void	sort_next_argument(int ac, char ** av, int cursor);
+void	move_argument_at_pos(char ** av, int src_i, int dest_i);
+int		sort_next_argument(int ac, char ** av, int cursor);
 
 #endif
