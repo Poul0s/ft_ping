@@ -6,7 +6,7 @@
 /*   By: psalame <psalame@student.42angouleme.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/08/01 15:09:51 by psalame           #+#    #+#             */
-/*   Updated: 2025/11/05 18:33:21 by psalame          ###   ########.fr       */
+/*   Updated: 2025/11/05 20:18:35 by psalame          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,6 +18,7 @@
 # include <netinet/in.h>
 # include "libs/ft_getopt/includes/getopt.h"
 # define INTERVAL_DEFAULT 1000 // miliseconds
+# define PAYLOAD_SIZE 56
 
 enum flags {
 	FLAG_HELP		=	1 << 0, // -?, --help

@@ -6,7 +6,7 @@
 /*   By: psalame <psalame@student.42angouleme.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/08/01 15:10:14 by psalame           #+#    #+#             */
-/*   Updated: 2025/11/05 18:54:49 by psalame          ###   ########.fr       */
+/*   Updated: 2025/11/05 20:18:50 by psalame          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,6 +20,7 @@
 #include <linux/time.h>
 #include <stdlib.h>
 #include <poll.h>
+#include <netdb.h>
 
 u_int16_t packet_sent = 0;
 u_int16_t packet_received = 0;
@@ -62,7 +63,7 @@ struct timespec send_packet(u_int16_t sequence, struct target_host *host) {
 		.un.echo = {0}
 	}; // ICMP_ECHO
 	
-	char payload[56];
+	char payload[PAYLOAD_SIZE];
 	char packet[sizeof(icmp) + sizeof(payload)];
 	
 	// Remplissage des champs variables
@@ -165,14 +166,24 @@ int	main(int ac, char **arguments) {
 	}
 
 	// todo getaddrinfo pour résoudre le nom de domaine en IP
-
-	// connection au host	
-	host.addr.sin_family = AF_INET;
-	host.addr.sin_port = 0;
-	if (inet_pton(AF_INET, host.host, &host.addr.sin_addr) <= 0) {
-		fprintf(stderr, "%s: unknown host\n", arguments[0]);
+	struct addrinfo hints = {0};
+	struct addrinfo *res;
+	hints.ai_family = AF_INET;
+	hints.ai_socktype = SOCK_RAW;
+	hints.ai_protocol = IPPROTO_ICMP;
+	int gai = getaddrinfo(host.host, NULL, &hints, &res);
+	if (gai != 0) {
+		fprintf(stderr, "%s: unknown host1\n", arguments[0]);
 		return 1;
 	}
+	
+	struct sockaddr_in *sin = (struct sockaddr_in *)res->ai_addr;
+	
+	// connection au host	
+	host.addr = *sin;
+	host.addr.sin_port = 0;
+
+	freeaddrinfo(res);
 
 	struct pollfd pfds[1] = {
 		{ .fd = host.socket, .events = POLLIN }
@@ -181,6 +192,9 @@ int	main(int ac, char **arguments) {
 	struct timespec ts_last_sent = {0, 0};
 	struct timespec ts_now;
 	long elapsed_ms;
+
+	printf("PING %s (%s): %d data bytes\n", host.host,
+		inet_ntoa(host.addr.sin_addr), PAYLOAD_SIZE);
 
 	while (true) {
 		clock_gettime(CLOCK_MONOTONIC, &ts_now);
