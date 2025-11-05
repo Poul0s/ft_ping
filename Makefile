@@ -11,6 +11,9 @@ NAME		=	ft_ping
 
 OBJS		=	$(addprefix .build/, $(SRCS:.c=.o))
 
+allow-nonroot: all
+	sudo setcap cap_net_raw+ep ./$(NAME)
+
 all: $(LIB_OPT) $(NAME)
 
 $(LIB_OPT):
@@ -31,6 +34,7 @@ fclean: clean
 
 re: fclean all
 
+
 -include $(OBJS:.o=.d)
 
-.phony: all clean fclean re
+.phony: all clean fclean re allow-nonroot
