@@ -6,7 +6,7 @@
 /*   By: psalame <psalame@student.42angouleme.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/08/01 15:10:14 by psalame           #+#    #+#             */
-/*   Updated: 2025/11/06 20:01:25 by psalame          ###   ########.fr       */
+/*   Updated: 2025/11/06 20:18:01 by psalame          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,22 +19,8 @@
 #include <poll.h>
 #include <netdb.h>
 #include <signal.h>
-#include <math.h>
 
 struct ping_stats stats = {0, 0, 0, -1.0f, 0.0f, 0.0f, 0.0f};
-
-void	show_help(char *ex_name) {
-	printf("\
-Usage: %s [OPTION...] HOST\n\
-\n\
-Send ICMP ECHO_REQUEST packets to network hosts.\n\
-\n\
- Options valid for all request type:\n\
-\n\
-  -v, --verbose  verbose output\n\
-\n\
-  -?, --help     give this help list\n", ex_name);
-}
 
 u_int16_t	checksum16(const void *data, size_t len) {
 	const uint16_t *buf = data;
@@ -83,7 +69,7 @@ struct timespec send_packet(u_int16_t sequence, struct target_host *host, unsign
 	host->packet_size = bytes_sent;
 	if (bytes_sent < 0) {
 		perror("sending packet");
-		exit(EXIT_FAILURE);
+		exit(1);
 	}
 
 	return ts;
@@ -187,38 +173,9 @@ void receive_packet(struct target_host *host, int flags, struct ping_opts *opts)
 	}
 }
 
-void print_stats(void) {
-	printf("--- Ping statistics ---\n");
-	printf("%d packets transmitted, %d packets received, %d%% packet loss\n",
-		stats.packets_sent,
-		stats.packets_received,
-		(int)(((float)(stats.packets_sent - stats.packets_received) / stats.packets_sent) * 100)
-	);
-	if (stats.min_time >= 0) {
-		// round-trip min/avg/max/stddev = 24.267/24.764/25.261/0.497 ms
-		double avg_time = stats.total_time / stats.packets_received_timed;
-		
-		double stddev = 0.0;
-
-		if (stats.packets_received_timed > 1) {
-			// σ = √(Σ(x² / N) - μ²) (écart-type de population)
-			double mean_sq = stats.total_squared / stats.packets_received_timed;
-			stddev = sqrt(mean_sq - (avg_time * avg_time));
-		}
-		
-
-		printf("round-trip min/avg/max/stddev = %.3f/%.3f/%.3f/%.3f ms\n",
-			stats.min_time,
-			avg_time,
-			stats.max_time,
-			stddev
-		);
-	}
-}
-
 void signal_handler(int signum) {
 	if (signum == SIGINT) {
-		print_stats();
+		print_stats(stats);
 		exit(0);
 	}
 }
@@ -235,7 +192,6 @@ int	main(int ac, char **arguments) {
 	options.interval_ms = INTERVAL_DEFAULT;
 	int		flags = get_flags(ac, arguments, &options);
 
-	
 	if (flags & FLAG_HELP) {
 		show_help(arguments[0]);
 		return 0;
@@ -244,12 +200,13 @@ int	main(int ac, char **arguments) {
 	
 	if (optind >= ac) {
 		fprintf(stderr, "%s: missing host operand\n", arguments[0]);
+		print_usage(arguments[0]);
 		return EX_USAGE;
 	}
 	
 	if (flags & (FLAG_FLOOD | FLAG_INTERVAL)) {
 		fprintf(stderr, "%s: ping: -f and -i incompatible options\n", arguments[0]);
-		exit(1);
+		return 1;
 	}
 
 	// Génération de la socket brute ICMP
@@ -317,7 +274,7 @@ int	main(int ac, char **arguments) {
 	}
 
 	close(host.socket);
-	print_stats();
+	print_stats(stats);
 
 	return (0);
 }

@@ -6,7 +6,7 @@
 /*   By: psalame <psalame@student.42angouleme.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/08/01 15:09:51 by psalame           #+#    #+#             */
-/*   Updated: 2025/11/06 19:16:52 by psalame          ###   ########.fr       */
+/*   Updated: 2025/11/06 20:15:52 by psalame          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -64,6 +64,15 @@ struct ping_stats {
 	double		total_squared;
 };
 
+
+// get flags
 int	get_flags(int ac, char **av, struct ping_opts *options);
+
+// printers
+void	show_help(char *ex_name);
+void	print_usage(char *ex_name);
+void	print_stats(struct ping_stats stats);
+
+
 
 #endif

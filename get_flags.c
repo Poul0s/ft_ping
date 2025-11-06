@@ -6,17 +6,12 @@
 /*   By: psalame <psalame@student.42angouleme.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/08/01 15:58:52 by psalame           #+#    #+#             */
-/*   Updated: 2025/11/06 19:54:05 by psalame          ###   ########.fr       */
+/*   Updated: 2025/11/06 20:14:13 by psalame          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "ping.h"
-#include <stdio.h>
 #include <unistd.h>
-
-void	print_usage(char *ex_name) {
-	printf("Try '%s --help' for more information.\n", ex_name);
-}
 
 long	parse_long_opt(char *ex_name, char *optarg, unsigned long max, bool allow_zero) {
 	char *endptr = 0;

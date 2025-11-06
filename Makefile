@@ -3,6 +3,7 @@ CC			= cc
 CFLAGS		= -Wall -Wextra -Werror -MD -g
 
 SRCS		=	main.c \
+				printers.c \
 				get_flags.c
 
 LIB_OPT		=	libs/ft_getopt/libgetopt.a
