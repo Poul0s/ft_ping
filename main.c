@@ -6,7 +6,7 @@
 /*   By: psalame <psalame@student.42angouleme.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/08/01 15:10:14 by psalame           #+#    #+#             */
-/*   Updated: 2025/11/06 17:45:59 by psalame          ###   ########.fr       */
+/*   Updated: 2025/11/06 17:55:00 by psalame          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -155,7 +155,7 @@ int receive_packet(struct target_host *host, int flags, struct ping_opts *opts) 
 		bytes_received - ip_header_len,
 		inet_ntoa(recv_addr.sin_addr),
 		ntohs(recv_icmp->un.echo.sequence),
-		(flags & FLAG_TTL) ? opts->ttl - (64 - ip_header->ttl) : ip_header->ttl // todo better calculation of ttl
+		(flags & FLAG_TTL) ? opts->ttl - (64 - ip_header->ttl) : ip_header->ttl
 	);
 	char *separator = strchr(recv_payload, '.');
 	if (!separator) {

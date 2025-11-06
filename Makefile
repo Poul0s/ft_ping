@@ -32,7 +32,7 @@ clean:
 fclean: clean
 	rm -rf $(NAME)
 
-re: fclean all
+re: fclean allow-nonroot
 
 
 -include $(OBJS:.o=.d)

@@ -6,7 +6,7 @@
 /*   By: psalame <psalame@student.42angouleme.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/08/04 14:28:00 by psalame           #+#    #+#             */
-/*   Updated: 2025/11/06 15:01:52 by psalame          ###   ########.fr       */
+/*   Updated: 2025/11/06 18:10:14 by psalame          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -123,6 +123,7 @@ t_optres	ft_getopt_long(int ac, char ** av, const char * opts, const struct s_op
 		{
 			char c = av[i][j++];
 			int curr_i = i;
+			int curr_j = j;
 			if (!av[i][j])
 			{
 				i = optind;
@@ -135,7 +136,7 @@ t_optres	ft_getopt_long(int ac, char ** av, const char * opts, const struct s_op
 				print_err(av[0], 0, c);
 				return (t_optres){0, NULL}; // maybe include the c in struct for future usage
 			}
-			else if (*(opt + 1) == ':' && next_arg >= ac)
+			else if (*(opt + 1) == ':' && !av[curr_i][curr_j] && next_arg >= ac)
 			{
 				print_err(av[0], 2, c);
 				return (t_optres){0, NULL}; // maybe include the c in struct for future usage
@@ -144,10 +145,24 @@ t_optres	ft_getopt_long(int ac, char ** av, const char * opts, const struct s_op
 			{
 				char	*arg;
 				if (*(opt + 1) == ':') {
-					move_argument_at_pos(av, next_arg, curr_i + 1);
-					arg = av[curr_i + 1];
-					next_arg++;
-					optind++;
+					if (av[curr_i][curr_j]) {
+						arg = av[curr_i] + curr_j;
+						i = optind;
+						j = 1;
+					}
+					else
+					{
+						move_argument_at_pos(av, next_arg, curr_i + 1);
+						arg = av[curr_i + 1];
+						next_arg++;
+						optind++;
+	
+						if (!av[curr_i][curr_j])
+						{
+							i = optind;
+							j = 1;
+						}
+					}
 				}
 				else
 					arg = NULL;
