@@ -6,7 +6,7 @@
 /*   By: psalame <psalame@student.42angouleme.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/08/01 15:58:52 by psalame           #+#    #+#             */
-/*   Updated: 2025/11/06 19:23:34 by psalame          ###   ########.fr       */
+/*   Updated: 2025/11/06 19:54:05 by psalame          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,7 +24,7 @@ long	parse_long_opt(char *ex_name, char *optarg, unsigned long max, bool allow_z
 	if (endptr != NULL && *endptr != '\0') {
 		fprintf(stderr, "%s: invalid value: (`%s' near `%s')\n", ex_name, optarg, endptr);
 		exit(1);
-	} else if (val < 0 || (unsigned long)val > max) { // todo end: check si possibilite de overflow dans le ping de inetutils
+	} else if (val < 0 || (unsigned long)val > max) {
 		fprintf(stderr, "%s: option value too big: `%s'\n", ex_name, optarg);
 		exit(1);
 	} else if (!allow_zero && val == 0) {

@@ -6,7 +6,7 @@
 /*   By: psalame <psalame@student.42angouleme.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/08/04 14:28:00 by psalame           #+#    #+#             */
-/*   Updated: 2025/11/06 18:10:14 by psalame          ###   ########.fr       */
+/*   Updated: 2025/11/06 19:57:17 by psalame          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -77,7 +77,6 @@ t_optres	ft_getopt_long(int ac, char ** av, const char * opts, const struct s_op
 		optind = i + 1;
 		if (j == 1 && av[i][1] == '-' && lopts != NULL)
 		{
-			// todo has_arg with '=value'
 			const t_option * opt = find_opt_long(av[i] + 2, lopts);
 			i++;
 			j = 1;

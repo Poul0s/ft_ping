@@ -6,7 +6,7 @@
 /*   By: psalame <psalame@student.42angouleme.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/08/01 15:10:14 by psalame           #+#    #+#             */
-/*   Updated: 2025/11/06 19:27:36 by psalame          ###   ########.fr       */
+/*   Updated: 2025/11/06 19:57:12 by psalame          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -81,13 +81,15 @@ struct timespec send_packet(u_int16_t sequence, struct target_host *host, unsign
 	ssize_t bytes_sent = sendto(host->socket, packet, sizeof(packet), 0,
 		(struct sockaddr *)&host->addr, sizeof(host->addr));
 	host->packet_size = bytes_sent;
-	if (bytes_sent < 0)
-		perror("sendto"); // debug only, todo remove later
+	if (bytes_sent < 0) {
+		perror("sending packet");
+		exit(EXIT_FAILURE);
+	}
 
 	return ts;
 }
 
-int receive_packet(struct target_host *host, int flags, struct ping_opts *opts) {
+void receive_packet(struct target_host *host, int flags, struct ping_opts *opts) {
 	const pid_t pid = getpid();
 	char recv_buffer[1024];
 	struct sockaddr_in recv_addr;
@@ -95,10 +97,8 @@ int receive_packet(struct target_host *host, int flags, struct ping_opts *opts) 
 	ssize_t bytes_received = recvfrom(host->socket, recv_buffer, sizeof(recv_buffer), 0,
 		(struct sockaddr *)&recv_addr, &addr_len);
 		
-	if (bytes_received < 0) {
-		perror("recvfrom");
-		return 1;
-	}
+	if (bytes_received < 0)
+		return ;
 
 	
 	struct timespec ts_recv;
@@ -217,7 +217,6 @@ void print_stats(void) {
 			stddev
 		);
 	}
-	// todo min/avg/max/stddev
 }
 
 void signal_handler(int signum) {
@@ -266,7 +265,6 @@ int	main(int ac, char **arguments) {
 	}
 	setsockopt(host.socket, IPPROTO_IP, IP_TTL, &options.ttl, sizeof(options.ttl));
 
-	// todo getaddrinfo pour résoudre le nom de domaine en IP
 	struct addrinfo hints = {0};
 	struct addrinfo *res;
 	hints.ai_family = AF_INET;
@@ -317,11 +315,8 @@ int	main(int ac, char **arguments) {
 			elapsed_ms = 0;
 		}
 
-		if (poll(pfds, 1, options.interval_ms - elapsed_ms) > 0) {
-			int ret = receive_packet(&host, flags, &options);
-			if (ret)
-				return ret;
-		}
+		if (poll(pfds, 1, options.interval_ms - elapsed_ms) > 0)
+			receive_packet(&host, flags, &options);
 	}
 
 	close(host.socket);
