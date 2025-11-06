@@ -6,7 +6,7 @@
 /*   By: psalame <psalame@student.42angouleme.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/08/01 15:09:51 by psalame           #+#    #+#             */
-/*   Updated: 2025/11/05 22:14:03 by psalame          ###   ########.fr       */
+/*   Updated: 2025/11/06 14:28:55 by psalame          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,6 +40,16 @@ struct target_host {
 	char *host;
 	int socket;
 	struct sockaddr_in addr;
+};
+
+struct ping_stats {
+	u_int16_t	packets_sent;
+	u_int16_t	packets_received;
+	u_int16_t	packets_received_timed;
+	double		min_time;
+	double		max_time;
+	double		total_time;
+	double		total_squared;
 };
 
 int	get_flags(int ac, char **av, struct ping_opts *options);

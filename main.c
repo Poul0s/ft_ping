@@ -6,7 +6,7 @@
 /*   By: psalame <psalame@student.42angouleme.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/08/01 15:10:14 by psalame           #+#    #+#             */
-/*   Updated: 2025/11/06 00:06:49 by psalame          ###   ########.fr       */
+/*   Updated: 2025/11/06 14:48:29 by psalame          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,9 +20,9 @@
 #include <poll.h>
 #include <netdb.h>
 #include <signal.h>
+#include <math.h>
 
-u_int16_t packet_sent = 0;
-u_int16_t packet_received = 0;
+struct ping_stats stats = {0, 0, 0, -1.0f, 0.0f, 0.0f, 0.0f};
 
 void	show_help(char *ex_name) {
 	printf("\
@@ -79,7 +79,7 @@ struct timespec send_packet(u_int16_t sequence, struct target_host *host) {
 
 	
 	// Envoi du paquet
-	packet_sent++;
+	stats.packets_sent++;
 	ssize_t bytes_sent = sendto(host->socket, packet, sizeof(packet), 0,
 		(struct sockaddr *)&host->addr, sizeof(host->addr));
 	if (bytes_sent < 0)
@@ -97,8 +97,6 @@ int receive_packet(struct target_host *host, int flags, struct ping_opts *opts) 
 		(struct sockaddr *)&recv_addr, &addr_len);
 		
 	if (bytes_received < 0) {
-		// todo test with ttl 0 if trigger this error
-		// todo show stats
 		perror("recvfrom");
 		return 1;
 	}
@@ -122,7 +120,7 @@ int receive_packet(struct target_host *host, int flags, struct ping_opts *opts) 
 		// not for us, ignore
 		return 0;
 	}
-	packet_received++;
+	stats.packets_received++;
 
 	printf("%zd bytes from %s: icmp_seq=%d ttl=%d",
 		bytes_received - ip_header_len,
@@ -141,6 +139,14 @@ int receive_packet(struct target_host *host, int flags, struct ping_opts *opts) 
 		long sec_sent = atol(recv_payload);
 		long nsec_sent = atol(separator + 1);
 		float elapsed_ms = (ts_recv.tv_sec - sec_sent) * 1000 + ((float)ts_recv.tv_nsec - nsec_sent) / 1000000;
+
+		if (stats.min_time < 0 || elapsed_ms < stats.min_time)
+			stats.min_time = elapsed_ms;
+		if (elapsed_ms > stats.max_time)
+			stats.max_time = elapsed_ms;
+		stats.total_time += elapsed_ms;
+		stats.total_squared += elapsed_ms * elapsed_ms;
+		stats.packets_received_timed++;
 		
 		printf(" time=%.3f ms\n", elapsed_ms);
 	}
@@ -152,10 +158,30 @@ int receive_packet(struct target_host *host, int flags, struct ping_opts *opts) 
 void print_stats(void) {
 	printf("--- Ping statistics ---\n");
 	printf("%d packets transmitted, %d packets received, %d%% packet loss\n",
-		packet_sent,
-		packet_received,
-		(int)(((float)(packet_sent - packet_received) / packet_sent) * 100)
+		stats.packets_sent,
+		stats.packets_received,
+		(int)(((float)(stats.packets_sent - stats.packets_received) / stats.packets_sent) * 100)
 	);
+	if (stats.min_time >= 0) {
+		// round-trip min/avg/max/stddev = 24.267/24.764/25.261/0.497 ms
+		double avg_time = stats.total_time / stats.packets_received_timed;
+		
+		double stddev = 0.0;
+
+		if (stats.packets_received_timed > 1) {
+			double mean_sq = stats.total_squared / stats.packets_received_timed;
+			stddev = sqrt(mean_sq - (avg_time * avg_time));
+			// σ = √(Σ(x² / N) - μ²) (écart-type de population)
+		}
+		
+
+		printf("round-trip min/avg/max/stddev = %.3f/%.3f/%.3f/%.3f ms\n",
+			stats.min_time,
+			avg_time,
+			stats.max_time,
+			stddev
+		);
+	}
 	// todo min/avg/max/stddev
 }
 
@@ -234,7 +260,7 @@ int	main(int ac, char **arguments) {
 		clock_gettime(CLOCK_MONOTONIC, &ts_now);
 		elapsed_ms = (ts_now.tv_sec - ts_last_sent.tv_sec) * 1000 + (ts_now.tv_nsec - ts_last_sent.tv_nsec) / 1000000;
 		if (elapsed_ms >= INTERVAL_DEFAULT) {
-			ts_last_sent = send_packet(packet_sent, &host);
+			ts_last_sent = send_packet(stats.packets_sent, &host);
 			elapsed_ms = 0;
 		}
 

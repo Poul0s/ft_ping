@@ -20,7 +20,7 @@ $(LIB_OPT):
 	make -C $(shell dirname $(LIB_OPT))
 
 $(NAME): $(OBJS)
-	$(CC) $(CFLAGS) $(OBJS) $(LIB_OPT) -o $@ 
+	$(CC) $(CFLAGS) $(OBJS) $(LIB_OPT) -lm -o $@ 
 
 .build/%.o: %.c
 	@mkdir -p $(dir $@)
