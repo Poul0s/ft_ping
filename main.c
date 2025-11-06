@@ -6,7 +6,7 @@
 /*   By: psalame <psalame@student.42angouleme.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/08/01 15:10:14 by psalame           #+#    #+#             */
-/*   Updated: 2025/11/06 18:43:53 by psalame          ###   ########.fr       */
+/*   Updated: 2025/11/06 18:51:09 by psalame          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -151,12 +151,16 @@ int receive_packet(struct target_host *host, int flags, struct ping_opts *opts) 
 	}
 	stats.packets_received++;
 
-	printf("%zd bytes from %s: icmp_seq=%d ttl=%d",
-		bytes_received - ip_header_len,
-		inet_ntoa(recv_addr.sin_addr),
-		ntohs(recv_icmp->un.echo.sequence),
-		(flags & FLAG_TTL) ? opts->ttl - (64 - ip_header->ttl) : ip_header->ttl
-	);
+	if (flags & FLAG_FLOOD) {
+		putchar('\b');
+	} else {
+		printf("%zd bytes from %s: icmp_seq=%d ttl=%d",
+			bytes_received - ip_header_len,
+			inet_ntoa(recv_addr.sin_addr),
+			ntohs(recv_icmp->un.echo.sequence),
+			(flags & FLAG_TTL) ? opts->ttl - (64 - ip_header->ttl) : ip_header->ttl
+		);
+	}
 	char *separator = strchr(recv_payload, '.');
 	if (!separator) {
 		printf("\n");
@@ -173,8 +177,8 @@ int receive_packet(struct target_host *host, int flags, struct ping_opts *opts) 
 		stats.total_time += elapsed_ms;
 		stats.total_squared += elapsed_ms * elapsed_ms;
 		stats.packets_received_timed++;
-		
-		printf(" time=%.3f ms\n", elapsed_ms);
+		if (!(flags & FLAG_FLOOD))
+			printf(" time=%.3f ms\n", elapsed_ms);
 	}
 	
 
