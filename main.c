@@ -6,7 +6,7 @@
 /*   By: psalame <psalame@student.42angouleme.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/08/01 15:10:14 by psalame           #+#    #+#             */
-/*   Updated: 2025/11/06 20:18:01 by psalame          ###   ########.fr       */
+/*   Updated: 2025/11/06 20:56:21 by psalame          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,20 +22,23 @@
 
 struct ping_stats stats = {0, 0, 0, -1.0f, 0.0f, 0.0f, 0.0f};
 
-u_int16_t	checksum16(const void *data, size_t len) {
-	const uint16_t *buf = data;
-	uint32_t sum = 0;
-	
-	for (size_t i = 0; i < len / 2; i++) {
-		sum += buf[i];
+u_int16_t	checksum16(void *b, unsigned long len)
+{
+	u_int16_t	*buf;
+	u_int32_t	sum;
+
+	buf = b;
+	sum = 0;
+	while (len > 1)
+	{
+		sum += *buf++;
+		len -= 2;
 	}
-	if (len % 2) {
-		sum += ((const uint8_t *)data)[len - 1];
-	}
-	while (sum >> 16) {
-		sum = (sum & 0xFFFF) + (sum >> 16);
-	}
-	return ~sum;
+	if (len == 1)
+		sum += *(unsigned char *)buf;
+	sum = (sum >> 16) + (sum & 0xFFFF);
+	sum += (sum >> 16);
+	return (~sum);
 }
 
 struct timespec send_packet(u_int16_t sequence, struct target_host *host, unsigned short packet_size) {
@@ -43,10 +46,12 @@ struct timespec send_packet(u_int16_t sequence, struct target_host *host, unsign
 	
 	char payload[packet_size];
 	char packet[sizeof(host->icmp_sent) + packet_size];
-	
+
 	// Remplissage des champs variables
 	host->icmp_sent.un.echo.id = htons(pid); // inetutils use getpid() as identifier
 	host->icmp_sent.un.echo.sequence = htons(sequence);
+	bzero(packet, sizeof(packet) + 1);
+	bzero(payload, packet_size);
 	memcpy(packet, &host->icmp_sent, sizeof(host->icmp_sent));
 
 	struct timespec ts;
@@ -174,8 +179,14 @@ void receive_packet(struct target_host *host, int flags, struct ping_opts *opts)
 }
 
 void signal_handler(int signum) {
-	if (signum == SIGINT) {
+	static int socket = -1;
+	if (signum < 0) {
+		socket = -signum;
+	}
+	else if (signum == SIGINT) {
 		print_stats(stats);
+		if (socket != -1)
+			close(socket);
 		exit(0);
 	}
 }
@@ -218,6 +229,7 @@ int	main(int ac, char **arguments) {
 		return 1;
 	}
 	setsockopt(host.socket, IPPROTO_IP, IP_TTL, &options.ttl, sizeof(options.ttl));
+	signal_handler(-host.socket);
 
 	struct addrinfo hints = {0};
 	struct addrinfo *res;
