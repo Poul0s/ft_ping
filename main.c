@@ -6,7 +6,7 @@
 /*   By: psalame <psalame@student.42angouleme.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/08/01 15:10:14 by psalame           #+#    #+#             */
-/*   Updated: 2025/11/06 18:37:20 by psalame          ###   ########.fr       */
+/*   Updated: 2025/11/06 18:43:53 by psalame          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -227,6 +227,7 @@ void	setup_signal_handlers(void) {
 
 int	main(int ac, char **arguments) {
 	struct ping_opts options = {0};
+	options.interval_ms = INTERVAL_DEFAULT;
 	int		flags = get_flags(ac, arguments, &options);
 
 	if (flags & FLAG_HELP) {
@@ -275,7 +276,7 @@ int	main(int ac, char **arguments) {
 	
 	struct timespec ts_last_sent = {0, 0};
 	struct timespec ts_now;
-	long elapsed_ms;
+	long unsigned elapsed_ms;
 
 	host.icmp_sent.type = 8;
 	host.icmp_sent.code = 0;
@@ -295,12 +296,12 @@ int	main(int ac, char **arguments) {
 	while (!(flags & FLAG_COUNT) || options.count == 0 || stats.packets_sent < options.count) {
 		clock_gettime(CLOCK_MONOTONIC, &ts_now);
 		elapsed_ms = (ts_now.tv_sec - ts_last_sent.tv_sec) * 1000 + (ts_now.tv_nsec - ts_last_sent.tv_nsec) / 1000000;
-		if (elapsed_ms >= INTERVAL_DEFAULT) {
+		if (elapsed_ms >= options.interval_ms) {
 			ts_last_sent = send_packet(stats.packets_sent, &host);
 			elapsed_ms = 0;
 		}
 
-		if (poll(pfds, 1, INTERVAL_DEFAULT - elapsed_ms) > 0) {
+		if (poll(pfds, 1, options.interval_ms - elapsed_ms) > 0) {
 			int ret = receive_packet(&host, flags, &options);
 			if (ret)
 				return ret;

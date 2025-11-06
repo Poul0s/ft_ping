@@ -6,12 +6,13 @@
 /*   By: psalame <psalame@student.42angouleme.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/08/01 15:58:52 by psalame           #+#    #+#             */
-/*   Updated: 2025/11/06 18:33:42 by psalame          ###   ########.fr       */
+/*   Updated: 2025/11/06 18:48:04 by psalame          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "ping.h"
 #include <stdio.h>
+#include <unistd.h>
 
 void	print_usage(char *ex_name) {
 	printf("Try '%s --help' for more information.\n", ex_name);
@@ -26,10 +27,11 @@ int	get_flags(int ac, char **av, struct ping_opts *options)
 		{"help", 0, '?'},
 		{"ttl", 1, 't'},
 		{"count", 1, 'c'},
+		{"flood", 0, 'f'},
 		{0, 0, 0}
 	};
 
-	while ((opt = ft_getopt_long(ac, av, "v?c:", parameters)).val != -1)
+	while ((opt = ft_getopt_long(ac, av, "v?fc:", parameters)).val != -1)
 	{
 		switch (opt.val)
 		{
@@ -71,6 +73,16 @@ int	get_flags(int ac, char **av, struct ping_opts *options)
 					}
 				} else
 					exit(EX_USAGE);
+				break;
+
+			case 'f':
+				if (geteuid() == 0) {
+					options->interval_ms = 10; // 10 ms minimum for flood ping
+				} else {
+					fprintf(stderr, "%s: flood ping requires root privileges\n", av[0]);
+					exit(EX_NOPERM);
+				}
+				flags |= FLAG_FLOOD;
 				break;
 			default:
 				print_usage(av[0]);

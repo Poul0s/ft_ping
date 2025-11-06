@@ -6,7 +6,7 @@
 /*   By: psalame <psalame@student.42angouleme.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/08/01 15:09:51 by psalame           #+#    #+#             */
-/*   Updated: 2025/11/06 18:33:34 by psalame          ###   ########.fr       */
+/*   Updated: 2025/11/06 18:45:43 by psalame          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,6 +21,7 @@
 # include <stdlib.h>
 # include <netinet/ip_icmp.h>
 # define INTERVAL_DEFAULT 1000 // miliseconds
+# define USER_MIN_INTERVAL_MS 200
 # define PAYLOAD_SIZE 56
 
 enum flags {
@@ -28,15 +29,17 @@ enum flags {
 	FLAG_VERBOSE	=	1 << 1, // -v, --verbose
 	FLAG_TTL		=	1 << 3, // -t, --ttl
 	FLAG_COUNT		=	1 << 4, // -c, --count
+	FLAG_FLOOD		=	1 << 5,  // -f, --flood
 	
 	// ...
 	
-	UNKNOWN_FLAG	=	1 << 5
+	UNKNOWN_FLAG	=	1 << 6
 };
 
 struct ping_opts {
 	unsigned char	ttl;
 	unsigned long	count;
+	unsigned long	interval_ms;
 };
 
 struct target_host {
