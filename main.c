@@ -6,7 +6,7 @@
 /*   By: psalame <psalame@student.42angouleme.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/08/01 15:10:14 by psalame           #+#    #+#             */
-/*   Updated: 2025/11/06 19:08:06 by psalame          ###   ########.fr       */
+/*   Updated: 2025/11/06 19:27:36 by psalame          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -52,11 +52,11 @@ u_int16_t	checksum16(const void *data, size_t len) {
 	return ~sum;
 }
 
-struct timespec send_packet(u_int16_t sequence, struct target_host *host) {
+struct timespec send_packet(u_int16_t sequence, struct target_host *host, unsigned short packet_size) {
 	const pid_t pid = getpid();
 	
-	char payload[PAYLOAD_SIZE];
-	char packet[sizeof(host->icmp_sent) + sizeof(payload)];
+	char payload[packet_size];
+	char packet[sizeof(host->icmp_sent) + packet_size];
 	
 	// Remplissage des champs variables
 	host->icmp_sent.un.echo.id = htons(pid); // inetutils use getpid() as identifier
@@ -65,8 +65,13 @@ struct timespec send_packet(u_int16_t sequence, struct target_host *host) {
 
 	struct timespec ts;
 	clock_gettime(CLOCK_MONOTONIC, &ts);
-	snprintf(payload, sizeof(payload), "%ld.%09ld", ts.tv_sec, ts.tv_nsec); // theoric max possible size : 20 + 1 + 9 = 30
-	memcpy(packet + sizeof(host->icmp_sent), payload, sizeof(payload));
+	if (packet_size != 0) {
+		int wrote = snprintf(payload, packet_size, "%ld.%09ld", ts.tv_sec, ts.tv_nsec); // theoric max possible size : 20 + 1 + 9 = 30
+		if (wrote < 0 || wrote >= (int) packet_size) {
+			payload[0] = '\0';
+		}
+		memcpy(packet + sizeof(host->icmp_sent), payload, packet_size);
+	}
 	
 	((struct icmphdr *)packet)->checksum = checksum16(packet, sizeof(packet));
 
@@ -223,7 +228,7 @@ void signal_handler(int signum) {
 }
 
 void	setup_signal_handlers(void) {
-	struct sigaction sa;
+	struct sigaction sa = {0};
 	sa.sa_handler = signal_handler;
 	sigemptyset(&sa.sa_mask);
 	sigaction(SIGINT, &sa, NULL);
@@ -308,7 +313,7 @@ int	main(int ac, char **arguments) {
 		clock_gettime(CLOCK_MONOTONIC, &ts_now);
 		elapsed_ms = (ts_now.tv_sec - ts_last_sent.tv_sec) * 1000 + (ts_now.tv_nsec - ts_last_sent.tv_nsec) / 1000000;
 		if (elapsed_ms >= options.interval_ms || ts_last_sent.tv_nsec == 0) {
-			ts_last_sent = send_packet(stats.packets_sent, &host);
+			ts_last_sent = send_packet(stats.packets_sent, &host, flags & FLAG_SIZE ? options.size : PAYLOAD_SIZE);
 			elapsed_ms = 0;
 		}
 

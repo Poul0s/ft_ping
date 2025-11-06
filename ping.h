@@ -6,7 +6,7 @@
 /*   By: psalame <psalame@student.42angouleme.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/08/01 15:09:51 by psalame           #+#    #+#             */
-/*   Updated: 2025/11/06 18:54:36 by psalame          ###   ########.fr       */
+/*   Updated: 2025/11/06 19:16:52 by psalame          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,24 +23,27 @@
 # define INTERVAL_DEFAULT 1000 // miliseconds
 # define USER_MIN_INTERVAL_MS 200
 # define PAYLOAD_SIZE 56
+# define MAX_PACKET_SIZE (65535 - 60 - 76)
 
 enum flags {
 	FLAG_HELP		=	1 << 0, // -?, --help
 	FLAG_VERBOSE	=	1 << 1, // -v, --verbose
 	FLAG_TTL		=	1 << 3, // -t, --ttl
 	FLAG_COUNT		=	1 << 4, // -c, --count
-	FLAG_FLOOD		=	1 << 5,  // -f, --flood
-	FLAG_INTERVAL	=	1 << 6,  // -i, --interval
+	FLAG_FLOOD		=	1 << 5, // -f, --flood
+	FLAG_INTERVAL	=	1 << 6, // -i, --interval
+	FLAG_SIZE		=	1 << 7, // -s, --size
 	
 	// ...
 	
-	UNKNOWN_FLAG	=	1 << 7
+	UNKNOWN_FLAG	=	1 << 8
 };
 
 struct ping_opts {
 	unsigned char	ttl;
 	unsigned long	count;
 	unsigned long	interval_ms;
+	unsigned short	size;
 };
 
 struct target_host {
