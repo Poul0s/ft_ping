@@ -6,7 +6,7 @@
 /*   By: psalame <psalame@student.42angouleme.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/08/01 15:10:14 by psalame           #+#    #+#             */
-/*   Updated: 2025/11/06 17:55:00 by psalame          ###   ########.fr       */
+/*   Updated: 2025/11/06 18:37:20 by psalame          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -292,7 +292,7 @@ int	main(int ac, char **arguments) {
 
 	setup_signal_handlers();
 
-	while (true) {
+	while (!(flags & FLAG_COUNT) || options.count == 0 || stats.packets_sent < options.count) {
 		clock_gettime(CLOCK_MONOTONIC, &ts_now);
 		elapsed_ms = (ts_now.tv_sec - ts_last_sent.tv_sec) * 1000 + (ts_now.tv_nsec - ts_last_sent.tv_nsec) / 1000000;
 		if (elapsed_ms >= INTERVAL_DEFAULT) {
@@ -301,15 +301,14 @@ int	main(int ac, char **arguments) {
 		}
 
 		if (poll(pfds, 1, INTERVAL_DEFAULT - elapsed_ms) > 0) {
-			// recept packet
 			int ret = receive_packet(&host, flags, &options);
 			if (ret)
 				return ret;
 		}
 	}
 
-	// fermeture de la socket
 	close(host.socket);
+	print_stats();
 
 	return (0);
 }
