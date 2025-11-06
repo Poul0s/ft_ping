@@ -6,7 +6,7 @@
 /*   By: psalame <psalame@student.42angouleme.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/08/01 15:58:52 by psalame           #+#    #+#             */
-/*   Updated: 2025/11/06 18:48:04 by psalame          ###   ########.fr       */
+/*   Updated: 2025/11/06 19:01:08 by psalame          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,10 +28,11 @@ int	get_flags(int ac, char **av, struct ping_opts *options)
 		{"ttl", 1, 't'},
 		{"count", 1, 'c'},
 		{"flood", 0, 'f'},
+		{"interval", 1, 'i'},
 		{0, 0, 0}
 	};
 
-	while ((opt = ft_getopt_long(ac, av, "v?fc:", parameters)).val != -1)
+	while ((opt = ft_getopt_long(ac, av, "v?fc:i:", parameters)).val != -1)
 	{
 		switch (opt.val)
 		{
@@ -83,6 +84,26 @@ int	get_flags(int ac, char **av, struct ping_opts *options)
 					exit(EX_NOPERM);
 				}
 				flags |= FLAG_FLOOD;
+				break;
+			case 'i':
+				if (opt.arg) {
+					char *endptr = 0;
+					double interval = strtod(opt.arg, &endptr);
+					if (endptr != NULL && *endptr != '\0') {
+						fprintf(stderr, "%s: invalid value: (`%s' near `%s')\n", av[0], opt.arg, endptr);
+						exit(1);
+					} else {
+						options->interval_ms = (unsigned long)(interval * 1000);
+						if (geteuid() != 0 && options->interval_ms < USER_MIN_INTERVAL_MS) {
+							fprintf(stderr, "%s: option value too small: `%s'\n", av[0], opt.arg);
+							exit(1);
+						}
+						flags |= FLAG_INTERVAL;
+					}
+				} else {
+					print_usage(av[0]);
+					exit(EX_USAGE);
+				}
 				break;
 			default:
 				print_usage(av[0]);

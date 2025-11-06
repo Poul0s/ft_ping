@@ -6,7 +6,7 @@
 /*   By: psalame <psalame@student.42angouleme.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/08/01 15:09:51 by psalame           #+#    #+#             */
-/*   Updated: 2025/11/06 18:45:43 by psalame          ###   ########.fr       */
+/*   Updated: 2025/11/06 18:54:36 by psalame          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,10 +30,11 @@ enum flags {
 	FLAG_TTL		=	1 << 3, // -t, --ttl
 	FLAG_COUNT		=	1 << 4, // -c, --count
 	FLAG_FLOOD		=	1 << 5,  // -f, --flood
+	FLAG_INTERVAL	=	1 << 6,  // -i, --interval
 	
 	// ...
 	
-	UNKNOWN_FLAG	=	1 << 6
+	UNKNOWN_FLAG	=	1 << 7
 };
 
 struct ping_opts {
