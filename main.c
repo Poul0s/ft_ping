@@ -6,7 +6,7 @@
 /*   By: psalame <psalame@student.42angouleme.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/08/01 15:10:14 by psalame           #+#    #+#             */
-/*   Updated: 2025/11/06 14:48:29 by psalame          ###   ########.fr       */
+/*   Updated: 2025/11/06 17:45:59 by psalame          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,7 +14,6 @@
 #include <arpa/inet.h>
 #include <string.h>
 #include <unistd.h>
-#include <netinet/ip_icmp.h>
 #include <time.h>
 #include <linux/time.h>
 #include <poll.h>
@@ -55,25 +54,19 @@ u_int16_t	checksum16(const void *data, size_t len) {
 
 struct timespec send_packet(u_int16_t sequence, struct target_host *host) {
 	const pid_t pid = getpid();
-	static struct icmphdr icmp = { 
-		.type = 8, 
-		.code = 0, 
-		.checksum = 0, 
-		.un.echo = {0}
-	}; // ICMP_ECHO
 	
 	char payload[PAYLOAD_SIZE];
-	char packet[sizeof(icmp) + sizeof(payload)];
+	char packet[sizeof(host->icmp_sent) + sizeof(payload)];
 	
 	// Remplissage des champs variables
-	icmp.un.echo.id = htons(pid); // todo how does inetutils generate his ID?
-	icmp.un.echo.sequence = htons(sequence);
-	memcpy(packet, &icmp, sizeof(icmp));
+	host->icmp_sent.un.echo.id = htons(pid); // inetutils use getpid() as identifier
+	host->icmp_sent.un.echo.sequence = htons(sequence);
+	memcpy(packet, &host->icmp_sent, sizeof(host->icmp_sent));
 
 	struct timespec ts;
 	clock_gettime(CLOCK_MONOTONIC, &ts);
 	snprintf(payload, sizeof(payload), "%ld.%09ld", ts.tv_sec, ts.tv_nsec); // theoric max possible size : 20 + 1 + 9 = 30
-	memcpy(packet + sizeof(icmp), payload, sizeof(payload));
+	memcpy(packet + sizeof(host->icmp_sent), payload, sizeof(payload));
 	
 	((struct icmphdr *)packet)->checksum = checksum16(packet, sizeof(packet));
 
@@ -82,6 +75,7 @@ struct timespec send_packet(u_int16_t sequence, struct target_host *host) {
 	stats.packets_sent++;
 	ssize_t bytes_sent = sendto(host->socket, packet, sizeof(packet), 0,
 		(struct sockaddr *)&host->addr, sizeof(host->addr));
+	host->packet_size = bytes_sent;
 	if (bytes_sent < 0)
 		perror("sendto"); // debug only, todo remove later
 
@@ -107,12 +101,47 @@ int receive_packet(struct target_host *host, int flags, struct ping_opts *opts) 
 	struct iphdr *ip_header = (struct iphdr *)recv_buffer;
 	size_t ip_header_len = ip_header->ihl * 4;
 	struct icmphdr *recv_icmp = (struct icmphdr *)(recv_buffer + ip_header_len);
+	char *recv_payload = recv_buffer + ip_header_len + sizeof(struct icmphdr);
+	// recv_payload[bytes_received - ip_header_len - sizeof(struct icmphdr)] = '\0';
 
 	if (recv_icmp->type == 11) {
 		printf("%zd bytes from %s: Time to live exceeded\n",
 			bytes_received - ip_header_len,
 			inet_ntoa(recv_addr.sin_addr)
 		);
+		if (flags & FLAG_VERBOSE) {
+
+			// IP header dump
+			printf("IP Hdr Dump:\n");
+			for (size_t i = 0; i < ip_header_len; i++) {
+				printf(i % 2 == 0 ? " %02x" : "%02x", ((uint8_t *)ip_header)[i]);
+			}
+			printf("\n");
+			printf("Vr HL TOS  Len   ID Flg  off TTL Pro  cks      Src             Dst        Data\n");
+			printf("%2x %2lx  %2x %04x %x %3x %04d %3d  %02x %04x %15s %15s \n", 
+				4, //ipv4
+				ip_header_len / 4, //ip header length
+				ip_header->tos, // type of service
+				ntohs(ip_header->tot_len), // total length
+				ntohs(ip_header->id), // identification
+				ntohs(ip_header->frag_off) >> 13, // flags
+				ntohs(ip_header->frag_off) & 0x1FFF, // fragment offset
+				(flags & FLAG_TTL) ? opts->ttl : ip_header->ttl, // ttl
+				ip_header->protocol, // protocol
+				ntohs(ip_header->check), // checksum
+				inet_ntoa(*(struct in_addr *)&ip_header->saddr), // source address
+				inet_ntoa(*(struct in_addr *)&ip_header->daddr)); // dest address
+			
+			// Sent ICMP header dump
+			
+			printf("ICMP: type %d, code %d, size %ld, id 0x%04x, seq 0x%04x\n",
+				host->icmp_sent.type,
+				host->icmp_sent.code,
+				host->packet_size,
+				ntohs(host->icmp_sent.un.echo.id),
+				ntohs(host->icmp_sent.un.echo.sequence)
+			);
+		}
 		return 0;
 	}
 
@@ -128,9 +157,6 @@ int receive_packet(struct target_host *host, int flags, struct ping_opts *opts) 
 		ntohs(recv_icmp->un.echo.sequence),
 		(flags & FLAG_TTL) ? opts->ttl - (64 - ip_header->ttl) : ip_header->ttl // todo better calculation of ttl
 	);
-	
-	char *recv_payload = recv_buffer + ip_header_len + sizeof(struct icmphdr);
-	recv_payload[bytes_received - ip_header_len - sizeof(struct icmphdr)] = '\0';
 	char *separator = strchr(recv_payload, '.');
 	if (!separator) {
 		printf("\n");
@@ -169,9 +195,9 @@ void print_stats(void) {
 		double stddev = 0.0;
 
 		if (stats.packets_received_timed > 1) {
+			// σ = √(Σ(x² / N) - μ²) (écart-type de population)
 			double mean_sq = stats.total_squared / stats.packets_received_timed;
 			stddev = sqrt(mean_sq - (avg_time * avg_time));
-			// σ = √(Σ(x² / N) - μ²) (écart-type de population)
 		}
 		
 
@@ -251,8 +277,18 @@ int	main(int ac, char **arguments) {
 	struct timespec ts_now;
 	long elapsed_ms;
 
-	printf("PING %s (%s): %d data bytes\n", host.host,
+	host.icmp_sent.type = 8;
+	host.icmp_sent.code = 0;
+	host.icmp_sent.checksum = 0;
+	host.icmp_sent.un.echo.id = 0;
+	host.icmp_sent.un.echo.sequence = 0;
+
+	printf("PING %s (%s): %d data bytes", host.host,
 		inet_ntoa(host.addr.sin_addr), PAYLOAD_SIZE);
+	if (flags & FLAG_VERBOSE)
+		printf(", id 0x%x = %d\n", ntohs(htons(getpid())), ntohs(htons(getpid())));
+	else
+		printf("\n");
 
 	setup_signal_handlers();
 

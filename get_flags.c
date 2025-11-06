@@ -6,7 +6,7 @@
 /*   By: psalame <psalame@student.42angouleme.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/08/01 15:58:52 by psalame           #+#    #+#             */
-/*   Updated: 2025/11/06 14:48:40 by psalame          ###   ########.fr       */
+/*   Updated: 2025/11/06 15:05:01 by psalame          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,7 +24,7 @@ int	get_flags(int ac, char **av, struct ping_opts *options)
 		{0, 0, 0}
 	};
 
-	while ((opt = ft_getopt_long(ac, av, "v?t:", parameters)).val != -1) // todo remove 't:' cuz another arg in real ping
+	while ((opt = ft_getopt_long(ac, av, "v?", parameters)).val != -1)
 	{
 		switch (opt.val)
 		{
@@ -32,8 +32,7 @@ int	get_flags(int ac, char **av, struct ping_opts *options)
 				flags |= FLAG_VERBOSE;
 				break;
 			case '?':
-				flags |= FLAG_HELP;
-				break;
+				return FLAG_HELP;
 			case 't':
 				if (opt.arg) {
 					char *endptr = 0;
@@ -54,6 +53,9 @@ int	get_flags(int ac, char **av, struct ping_opts *options)
 				}
 				flags |= FLAG_TTL;
 				break;
+			default:
+				fprintf(stderr, "Try '%s --help' for more information.\n", av[0]);
+				exit(EX_USAGE);
 		}
 	}
 	return flags;

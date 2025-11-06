@@ -6,7 +6,7 @@
 /*   By: psalame <psalame@student.42angouleme.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/08/04 14:28:00 by psalame           #+#    #+#             */
-/*   Updated: 2025/11/05 21:31:40 by psalame          ###   ########.fr       */
+/*   Updated: 2025/11/06 15:01:52 by psalame          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,8 +22,16 @@ static const t_option * find_opt_long(char * opt, const struct s_option * lopts)
 {
 	while (lopts->name != NULL)
 	{
-		if (strcmp(opt, lopts->name) == 0)
+		char * eq_pos = strchr(opt, '=');
+		if (eq_pos != NULL)
+			*eq_pos = '\0';
+		if (strcmp(opt, lopts->name) == 0) {
+			if (eq_pos != NULL)
+				*eq_pos = '=';
 			return lopts;
+		}
+		if (eq_pos != NULL)
+			*eq_pos = '=';
 		lopts++;
 	}
 	return NULL;
@@ -44,6 +52,9 @@ static void	print_err(char *exec_name, int err_nb, intptr_t value)
 			break;
 		case 3:
 			fprintf(stderr, "%s: option '%s' requires an argument\n", exec_name, (char *)value);
+			break;
+		case 4:
+			fprintf(stderr, "%s: option '%s' doesn't allow an argument\n", exec_name, (char *)value);
 			break;
 	}
 }
@@ -75,17 +86,37 @@ t_optres	ft_getopt_long(int ac, char ** av, const char * opts, const struct s_op
 				print_err(av[0], 1, (intptr_t) av[i - 1]);
 				return (t_optres){0, NULL};
 			}
-			else if (opt->has_arg && av[next_arg] == NULL)
+			else
 			{
-				print_err(av[0], 3, (intptr_t) av[i - 1]);
-				return (t_optres){0, NULL}; // maybe include the opt->val in struct for future usage
-			}
-			else {
-				if (opt->has_arg) {
-					move_argument_at_pos(av, next_arg, i);
-					optind = i + 1;
+				char * eq_pos = strchr(av[i - 1] + 2, '=');
+
+				if (eq_pos != NULL && !opt->has_arg)
+				{
+					*eq_pos = '\0';
+					print_err(av[0], 4, (intptr_t) av[i - 1]);
+					return (t_optres){0, NULL};
+				} 
+				else if (opt->has_arg && eq_pos == NULL && av[next_arg] == NULL)
+				{
+					print_err(av[0], 3, (intptr_t) av[i - 1]);
+					return (t_optres){0, NULL}; // maybe include the opt->val in struct for future usage
 				}
-				return (t_optres){opt->val, opt->has_arg ? av[i++] : NULL};
+				else
+				{
+					char * arg = NULL;
+					if (opt->has_arg)
+					{
+						if (eq_pos != NULL)
+							arg = eq_pos + 1;
+						else
+						{
+							move_argument_at_pos(av, next_arg, i);
+							optind = i + 1;
+							arg = av[i++];
+						}
+					}
+					return (t_optres){opt->val, arg};
+				}
 			}
 		}
 		else
