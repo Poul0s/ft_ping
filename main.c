@@ -6,7 +6,7 @@
 /*   By: psalame <psalame@student.42angouleme.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/08/01 15:10:14 by psalame           #+#    #+#             */
-/*   Updated: 2025/11/06 19:57:12 by psalame          ###   ########.fr       */
+/*   Updated: 2025/11/06 20:01:25 by psalame          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -107,7 +107,7 @@ void receive_packet(struct target_host *host, int flags, struct ping_opts *opts)
 	size_t ip_header_len = ip_header->ihl * 4;
 	struct icmphdr *recv_icmp = (struct icmphdr *)(recv_buffer + ip_header_len);
 	char *recv_payload = recv_buffer + ip_header_len + sizeof(struct icmphdr);
-	// recv_payload[bytes_received - ip_header_len - sizeof(struct icmphdr)] = '\0';
+	recv_payload[bytes_received - ip_header_len - sizeof(struct icmphdr)] = '\0';
 
 	if (recv_icmp->type == 11) {
 		printf("%zd bytes from %s: Time to live exceeded\n",
@@ -147,12 +147,12 @@ void receive_packet(struct target_host *host, int flags, struct ping_opts *opts)
 				ntohs(host->icmp_sent.un.echo.sequence)
 			);
 		}
-		return 0;
+		return ;
 	}
 
 	if (recv_icmp->un.echo.id != htons(pid) || recv_icmp->type != 0) {
 		// not for us, ignore
-		return 0;
+		return ;
 	}
 	stats.packets_received++;
 
@@ -185,9 +185,6 @@ void receive_packet(struct target_host *host, int flags, struct ping_opts *opts)
 		if (!(flags & FLAG_FLOOD))
 			printf(" time=%.3f ms\n", elapsed_ms);
 	}
-	
-
-	return 0;
 }
 
 void print_stats(void) {
