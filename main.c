@@ -15,7 +15,6 @@
 #include <string.h>
 #include <unistd.h>
 #include <time.h>
-#include <linux/time.h>
 #include <poll.h>
 #include <netdb.h>
 #include <signal.h>
