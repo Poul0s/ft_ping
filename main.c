@@ -6,7 +6,7 @@
 /*   By: psalame <psalame@student.42angouleme.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/08/01 15:10:14 by psalame           #+#    #+#             */
-/*   Updated: 2025/11/06 20:56:21 by psalame          ###   ########.fr       */
+/*   Updated: 2025/11/17 13:25:44 by psalame          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -111,6 +111,13 @@ void receive_packet(struct target_host *host, int flags, struct ping_opts *opts)
 			for (size_t i = 0; i < ip_header_len; i++) {
 				printf(i % 2 == 0 ? " %02x" : "%02x", ((uint8_t *)ip_header)[i]);
 			}
+			char ip_dst[16] = {0};
+			snprintf(ip_dst, sizeof(ip_dst), "%d.%d.%d.%d",
+				host->addr.sin_addr.s_addr & 0xFF,
+				(host->addr.sin_addr.s_addr >> 8) & 0xFF,
+				(host->addr.sin_addr.s_addr >> 16) & 0xFF,
+				(host->addr.sin_addr.s_addr >> 24) & 0xFF
+			);
 			printf("\n");
 			printf("Vr HL TOS  Len   ID Flg  off TTL Pro  cks      Src             Dst        Data\n");
 			printf("%2x %2lx  %2x %04x %x %3x %04d %3d  %02x %04x %15s %15s \n", 
@@ -125,7 +132,7 @@ void receive_packet(struct target_host *host, int flags, struct ping_opts *opts)
 				ip_header->protocol, // protocol
 				ntohs(ip_header->check), // checksum
 				inet_ntoa(*(struct in_addr *)&ip_header->saddr), // source address
-				inet_ntoa(*(struct in_addr *)&ip_header->daddr)); // dest address
+				ip_dst); // dest address
 			
 			// Sent ICMP header dump
 			
