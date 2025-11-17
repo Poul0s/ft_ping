@@ -6,7 +6,7 @@
 /*   By: psalame <psalame@student.42angouleme.fr    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/08/01 15:10:14 by psalame           #+#    #+#             */
-/*   Updated: 2025/11/17 13:25:44 by psalame          ###   ########.fr       */
+/*   Updated: 2025/11/17 13:51:53 by psalame          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -120,7 +120,7 @@ void receive_packet(struct target_host *host, int flags, struct ping_opts *opts)
 			);
 			printf("\n");
 			printf("Vr HL TOS  Len   ID Flg  off TTL Pro  cks      Src             Dst        Data\n");
-			printf("%2x %2lx  %2x %04x %x %3x %04d %3d  %02x %04x %15s %15s \n", 
+			printf("%2x %2lx  %2x %04x %x %3x %04d %3d  %02x %04x %-15s %-15s \n", 
 				4, //ipv4
 				ip_header_len / 4, //ip header length
 				ip_header->tos, // type of service
